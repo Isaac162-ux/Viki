@@ -15,11 +15,11 @@ except ImportError:  # respx is an optional test-only dep; MockTransport tests
     respx = None  # type: ignore[assignment]  # still run without it.
     _HAS_RESPX = False
 
-from openjarvis.core.registry import EngineRegistry
-from openjarvis.core.types import Message, Role
-from openjarvis.engine._base import EngineConnectionError
-from openjarvis.engine._openai_compat import EngineContextLengthError
-from openjarvis.engine.openai_compat_engines import MLXEngine, VLLMEngine
+from viki.core.registry import EngineRegistry
+from viki.core.types import Message, Role
+from viki.engine._base import EngineConnectionError
+from viki.engine._openai_compat import EngineContextLengthError
+from viki.engine.openai_compat_engines import MLXEngine, VLLMEngine
 
 # respx-backed tests exercise the SYNC client paths (generate/list_models/health)
 # and skip cleanly when respx is absent; the async stream/timeout/disconnect tests

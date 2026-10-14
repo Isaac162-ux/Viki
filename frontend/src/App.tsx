@@ -23,8 +23,8 @@ export default function App() {
     setSetupDone(true);
     // Only fire once per install — guard against setup screen re-appearing
     // on reinstalls or dev reloads.
-    if (!localStorage.getItem('oj-setup-completed')) {
-      localStorage.setItem('oj-setup-completed', '1');
+    if (!localStorage.getItem('viki-setup-completed')) {
+      localStorage.setItem('viki-setup-completed', '1');
       track('setup_completed', { preset: 'default' });
     }
   }, []);

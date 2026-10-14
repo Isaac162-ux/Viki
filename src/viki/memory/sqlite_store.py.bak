@@ -1,0 +1,638 @@
+"""SQLite-backed memory store implementation for ViKi's multi-level memory system."""
+
+from __future__ import annotations
+
+import json
+import sqlite3
+import threading
+import time
+from contextlib import contextmanager
+from dataclasses import asdict
+from pathlib import Path
+from typing import Any, Dict, List, Optional, Set
+
+from viki.memory.types import (
+    MemoryEntry,
+    MemoryPriority,
+    MemoryType,
+    PreferenceMemoryEntry,
+    ProceduralMemoryEntry,
+    EpisodicMemoryEntry,
+    SemanticMemoryEntry,
+    WorkingMemoryEntry,
+    MemoryStore,
+)
+
+
+class SQLiteMemoryStore(MemoryStore):
+    """SQLite-backed persistent memory store with full-text search support."""
+
+    # Schema version for migrations
+    SCHEMA_VERSION = 2
+
+    def __init__(
+        self,
+        path: str | Path,
+        *,
+        memory_type: Optional[MemoryType] = None,
+        max_entries: int = 10000,
+        enable_fts: bool = True,
+    ) -> None:
+        self._path = Path(path).expanduser()
+        self._memory_type = memory_type
+        self._max_entries = max_entries
+        self._enable_fts = enable_fts
+        self._lock = threading.RLock()
+        self._conn: Optional[sqlite3.Connection] = None
+        self._init_db()
+
+    def _init_db(self) -> None:
+        """Initialize database schema."""
+        self._path.parent.mkdir(parents=True, exist_ok=True)
+        self._conn = sqlite3.connect(
+            str(self._path),
+            check_same_thread=False,
+            timeout=30.0,
+        )
+        self._conn.row_factory = sqlite3.Row
+        self._conn.execute("PRAGMA journal_mode=WAL")
+        self._conn.execute("PRAGMA synchronous=NORMAL")
+        self._conn.execute("PRAGMA busy_timeout=5000")
+
+        with self._lock:
+            self._create_schema()
+            self._migrate()
+
+    def _create_schema(self) -> None:
+        """Create tables and indexes."""
+        c = self._conn.cursor()
+
+        # Main memories table
+        c.execute("""
+            CREATE TABLE IF NOT EXISTS memories (
+                id TEXT PRIMARY KEY,
+                memory_type TEXT NOT NULL,
+                content TEXT NOT NULL,
+                metadata TEXT NOT NULL DEFAULT '{}',
+                created_at REAL NOT NULL,
+                updated_at REAL NOT NULL,
+                accessed_at REAL NOT NULL,
+                access_count INTEGER NOT NULL DEFAULT 0,
+                priority INTEGER NOT NULL DEFAULT 50,
+                tags TEXT NOT NULL DEFAULT '[]',
+                source TEXT NOT NULL DEFAULT '',
+                confidence REAL NOT NULL DEFAULT 1.0,
+                expires_at REAL,
+                -- Type-specific fields
+                session_id TEXT,
+                turn_index INTEGER DEFAULT 0,
+                related_entries TEXT DEFAULT '[]',
+                event_type TEXT,
+                participants TEXT DEFAULT '[]',
+                location TEXT,
+                duration_seconds REAL DEFAULT 0,
+                outcome TEXT,
+                emotions TEXT DEFAULT '{}',
+                category TEXT,
+                entities TEXT DEFAULT '[]',
+                relations TEXT DEFAULT '[]',
+                provenance TEXT,
+                verification_status TEXT DEFAULT 'unverified',
+                supersedes TEXT DEFAULT '[]',
+                skill_name TEXT,
+                steps TEXT DEFAULT '[]',
+                preconditions TEXT DEFAULT '[]',
+                postconditions TEXT DEFAULT '[]',
+                tools_required TEXT DEFAULT '[]',
+                success_rate REAL DEFAULT 0,
+                execution_count INTEGER DEFAULT 0,
+                last_executed REAL,
+                version INTEGER DEFAULT 1,
+                preference_key TEXT,
+                preference_value TEXT,
+                scope TEXT DEFAULT 'global',
+                overridden_by TEXT
+            )
+        """)
+
+        # Indexes for common queries
+        c.execute("CREATE INDEX IF NOT EXISTS idx_mem_type ON memories(memory_type)")
+        c.execute("CREATE INDEX IF NOT EXISTS idx_mem_created ON memories(created_at)")
+        c.execute("CREATE INDEX IF NOT EXISTS idx_mem_accessed ON memories(accessed_at)")
+        c.execute("CREATE INDEX IF NOT EXISTS idx_mem_priority ON memories(priority)")
+        c.execute("CREATE INDEX IF NOT EXISTS idx_mem_tags ON memories(tags)")
+        c.execute("CREATE INDEX IF NOT EXISTS idx_mem_source ON memories(source)")
+        c.execute("CREATE INDEX IF NOT EXISTS idx_mem_expires ON memories(expires_at)")
+        c.execute("CREATE INDEX IF NOT EXISTS idx_mem_session ON memories(session_id)")
+
+        # Full-text search virtual table
+        if self._enable_fts:
+            try:
+                c.execute("""
+                    CREATE VIRTUAL TABLE IF NOT EXISTS memories_fts
+                    USING fts5(content, tags, metadata, source, tokenize='porter unicode61')
+                """)
+                c.execute("""
+                    CREATE TRIGGER IF NOT EXISTS memories_fts_insert
+                    AFTER INSERT ON memories BEGIN
+                        INSERT INTO memories_fts(rowid, content, tags, metadata, source)
+                        VALUES (new.id, new.content, new.tags, new.metadata, new.source);
+                    END
+                """)
+                c.execute("""
+                    CREATE TRIGGER IF NOT EXISTS memories_fts_delete
+                    AFTER DELETE ON memories BEGIN
+                        DELETE FROM memories_fts WHERE rowid = old.id;
+                    END
+                """)
+                c.execute("""
+                    CREATE TRIGGER IF NOT EXISTS memories_fts_update
+                    AFTER UPDATE ON memories BEGIN
+                        DELETE FROM memories_fts WHERE rowid = old.id;
+                        INSERT INTO memories_fts(rowid, content, tags, metadata, source)
+                        VALUES (new.id, new.content, new.tags, new.metadata, new.source);
+                    END
+                """)
+            except sqlite3.OperationalError:
+                # FTS5 not available in this SQLite build
+                pass
+
+        # Schema version table
+        c.execute("""
+            CREATE TABLE IF NOT EXISTS schema_info (
+                key TEXT PRIMARY KEY,
+                value TEXT NOT NULL
+            )
+        """)
+        c.execute("""
+            INSERT OR IGNORE INTO schema_info(key, value) VALUES ('version', ?)
+        """, (str(self.SCHEMA_VERSION),))
+
+        self._conn.commit()
+
+    def _migrate(self) -> None:
+        """Run migrations if needed."""
+        c = self._conn.cursor()
+        c.execute("SELECT value FROM schema_info WHERE key = 'version'")
+        row = c.fetchone()
+        current_version = int(row[0]) if row else 0
+
+        if current_version < 1:
+            # Migration 1: Add type-specific columns
+            self._migrate_v1()
+        if current_version < 2:
+            # Migration 2: Add FTS triggers
+            self._migrate_v2()
+
+        c.execute("UPDATE schema_info SET value = ? WHERE key = 'version'", (str(self.SCHEMA_VERSION),))
+        self._conn.commit()
+
+    def _migrate_v1(self) -> None:
+        """Add type-specific columns to existing table."""
+        c = self._conn.cursor()
+        columns_to_add = [
+            ("session_id", "TEXT"),
+            ("turn_index", "INTEGER DEFAULT 0"),
+            ("related_entries", "TEXT DEFAULT '[]'"),
+            ("event_type", "TEXT"),
+            ("participants", "TEXT DEFAULT '[]'"),
+            ("location", "TEXT"),
+            ("duration_seconds", "REAL DEFAULT 0"),
+            ("outcome", "TEXT"),
+            ("emotions", "TEXT DEFAULT '{}'"),
+            ("category", "TEXT"),
+            ("entities", "TEXT DEFAULT '[]'"),
+            ("relations", "TEXT DEFAULT '[]'"),
+            ("provenance", "TEXT"),
+            ("verification_status", "TEXT DEFAULT 'unverified'"),
+            ("supersedes", "TEXT DEFAULT '[]'"),
+            ("skill_name", "TEXT"),
+            ("steps", "TEXT DEFAULT '[]'"),
+            ("preconditions", "TEXT DEFAULT '[]'"),
+            ("postconditions", "TEXT DEFAULT '[]'"),
+            ("tools_required", "TEXT DEFAULT '[]'"),
+            ("success_rate", "REAL DEFAULT 0"),
+            ("execution_count", "INTEGER DEFAULT 0"),
+            ("last_executed", "REAL"),
+            ("version", "INTEGER DEFAULT 1"),
+            ("preference_key", "TEXT"),
+            ("preference_value", "TEXT"),
+            ("scope", "TEXT DEFAULT 'global'"),
+            ("overridden_by", "TEXT"),
+        ]
+        for col_name, col_type in columns_to_add:
+            try:
+                c.execute(f"ALTER TABLE memories ADD COLUMN {col_name} {col_type}")
+            except sqlite3.OperationalError:
+                pass  # Column already exists
+
+    def _migrate_v2(self) -> None:
+        """Ensure FTS triggers exist."""
+        # Handled in _create_schema
+
+    @contextmanager
+    def _lock(self):
+        """Context manager for thread-safe operations."""
+        self._lock.acquire()
+        try:
+            yield
+        finally:
+            self._lock.release()
+
+    def _row_to_entry(self, row: sqlite3.Row) -> MemoryEntry:
+        """Convert a database row to a MemoryEntry."""
+        data = dict(row)
+        memory_type = MemoryType(data.pop("memory_type"))
+
+        # Extract type-specific fields
+        type_fields = {}
+        if memory_type == MemoryType.WORKING:
+            for field in ["session_id", "turn_index", "related_entries"]:
+                type_fields[field] = data.pop(field, None)
+            if type_fields.get("related_entries"):
+                type_fields["related_entries"] = json.loads(type_fields["related_entries"])
+        elif memory_type == MemoryType.EPISODIC:
+            for field in ["event_type", "participants", "location", "duration_seconds",
+                          "outcome", "emotions"]:
+                type_fields[field] = data.pop(field, None)
+            if type_fields.get("participants"):
+                type_fields["participants"] = json.loads(type_fields["participants"])
+            if type_fields.get("emotions"):
+                type_fields["emotions"] = json.loads(type_fields["emotions"])
+        elif memory_type == MemoryType.SEMANTIC:
+            for field in ["category", "entities", "relations", "provenance",
+                          "verification_status", "supersedes"]:
+                type_fields[field] = data.pop(field, None)
+            if type_fields.get("entities"):
+                type_fields["entities"] = json.loads(type_fields["entities"])
+            if type_fields.get("relations"):
+                type_fields["relations"] = json.loads(type_fields["relations"])
+            if type_fields.get("supersedes"):
+                type_fields["supersedes"] = json.loads(type_fields["supersedes"])
+        elif memory_type == MemoryType.PROCEDURAL:
+            for field in ["skill_name", "steps", "preconditions", "postconditions",
+                          "tools_required", "success_rate", "execution_count",
+                          "last_executed", "version"]:
+                type_fields[field] = data.pop(field, None)
+            if type_fields.get("steps"):
+                type_fields["steps"] = json.loads(type_fields["steps"])
+            if type_fields.get("preconditions"):
+                type_fields["preconditions"] = json.loads(type_fields["preconditions"])
+            if type_fields.get("postconditions"):
+                type_fields["postconditions"] = json.loads(type_fields["postconditions"])
+            if type_fields.get("tools_required"):
+                type_fields["tools_required"] = json.loads(type_fields["tools_required"])
+        elif memory_type == MemoryType.PREFERENCE:
+            for field in ["preference_key", "preference_value", "scope", "overridden_by"]:
+                type_fields[field] = data.pop(field, None)
+
+        # Common fields
+        entry_kwargs = {
+            "id": data["id"],
+            "memory_type": memory_type,
+            "content": data["content"],
+            "metadata": json.loads(data["metadata"] or "{}"),
+            "created_at": data["created_at"],
+            "updated_at": data["updated_at"],
+            "accessed_at": data["accessed_at"],
+            "access_count": data["access_count"],
+            "priority": MemoryPriority(data["priority"]),
+            "tags": set(json.loads(data["tags"] or "[]")),
+            "source": data["source"],
+            "confidence": data["confidence"],
+            "expires_at": data["expires_at"],
+            **type_fields,
+        }
+
+        # Handle preference_value JSON
+        if "preference_value" in type_fields and type_fields["preference_value"]:
+            try:
+                type_fields["preference_value"] = json.loads(type_fields["preference_value"])
+            except json.JSONDecodeError:
+                pass
+
+        # Map to appropriate entry class
+        entry_class = self._get_entry_class(memory_type)
+        return entry_class(**entry_kwargs)
+
+    def _get_entry_class(self, memory_type: MemoryType):
+        mapping = {
+            MemoryType.WORKING: WorkingMemoryEntry,
+            MemoryType.EPISODIC: EpisodicMemoryEntry,
+            MemoryType.SEMANTIC: SemanticMemoryEntry,
+            MemoryType.PROCEDURAL: ProceduralMemoryEntry,
+            MemoryType.PREFERENCE: PreferenceMemoryEntry,
+        }
+        return mapping.get(memory_type, MemoryEntry)
+
+    def _entry_to_params(self, entry: MemoryEntry) -> tuple:
+        """Convert a MemoryEntry to SQL parameters."""
+        now = time.time()
+        base_params = (
+            entry.id,
+            entry.memory_type.value,
+            entry.content,
+            json.dumps(entry.metadata, ensure_ascii=False),
+            entry.created_at,
+            now,  # updated_at
+            entry.accessed_at,
+            entry.access_count,
+            entry.priority.value,
+            json.dumps(list(entry.tags), ensure_ascii=False),
+            entry.source,
+            entry.confidence,
+            entry.expires_at,
+        )
+
+        # Type-specific params
+        if entry.memory_type == MemoryType.WORKING:
+            if isinstance(entry, WorkingMemoryEntry):
+                type_params = (
+                    entry.session_id,
+                    entry.turn_index,
+                    json.dumps(entry.related_entries, ensure_ascii=False),
+                    None, None, None, None, None, None,  # episodic
+                    None, None, None, None, None,  # semantic
+                    None, None, None, None, None, None, None, None,  # procedural
+                    None, None, None, None,  # preference
+                )
+            elif entry.memory_type == MemoryType.EPISODIC:
+                if isinstance(entry, EpisodicMemoryEntry):
+                    type_params = (
+                        None, None, None,  # working
+                        entry.event_type,
+                        json.dumps(entry.participants, ensure_ascii=False),
+                        entry.location,
+                        entry.duration_seconds,
+                        entry.outcome,
+                        json.dumps(entry.emotions, ensure_ascii=False),
+                        None, None, None, None, None, None,  # semantic
+                        None, None, None, None, None, None, None, None,  # procedural
+                        None, None, None, None,  # preference
+                    )
+            elif entry.memory_type == MemoryType.SEMANTIC:
+                if isinstance(entry, SemanticMemoryEntry):
+                    type_params = (
+                        None, None, None,  # working
+                        None, None, None, None, None, None,  # episodic
+                        entry.category,
+                        json.dumps(entry.entities, ensure_ascii=False),
+                        json.dumps(entry.relations, ensure_ascii=False),
+                        entry.provenance,
+                        entry.verification_status,
+                        json.dumps(entry.supersedes, ensure_ascii=False),
+                        None, None, None, None, None, None, None, None,  # procedural
+                        None, None, None, None,  # preference
+                    )
+                else:
+                    # Fallback for base MemoryEntry with SEMANTIC type
+                    type_params = (
+                        None, None, None,  # working
+                        None, None, None, None, None, None,  # episodic
+                        "", None, None, "", "unverified", "[]",  # semantic fields
+                        None, None, None, None, None, None, None, None,  # procedural
+                        None, None, None, None,  # preference
+                    )
+            elif entry.memory_type == MemoryType.PROCEDURAL:
+                if isinstance(entry, ProceduralMemoryEntry):
+                    type_params = (
+                        None, None, None,  # working
+                        None, None, None, None, None, None,  # episodic
+                        None, None, None, None, None, None,  # semantic
+                        entry.skill_name,
+                        json.dumps(entry.steps, ensure_ascii=False),
+                        json.dumps(entry.preconditions, ensure_ascii=False),
+                        json.dumps(entry.postconditions, ensure_ascii=False),
+                        json.dumps(entry.tools_required, ensure_ascii=False),
+                        entry.success_rate,
+                        entry.execution_count,
+                        entry.last_executed,
+                        entry.version,
+                        None, None, None, None,  # preference
+                    )
+            elif entry.memory_type == MemoryType.PREFERENCE:
+                if isinstance(entry, PreferenceMemoryEntry):
+                    type_params = (
+                        None, None, None,  # working
+                        None, None, None, None, None, None,  # episodic
+                        None, None, None, None, None, None,  # semantic
+                        None, None, None, None, None, None, None, None,  # procedural
+                        entry.preference_key,
+                        json.dumps(entry.preference_value, ensure_ascii=False) if entry.preference_value is not None else None,
+                        entry.scope,
+                        entry.overridden_by,
+                    )
+            else:
+                type_params = (None,) * 24  # 24 type-specific columns
+
+        return base_params + type_params
+
+    # -- MemoryStore API ------------------------------------------------------
+
+    def add(self, entry: MemoryEntry) -> str:
+        with self._lock:
+            # Check if ID already exists
+            c = self._conn.cursor()
+            c.execute("SELECT 1 FROM memories WHERE id = ?", (entry.id,))
+            if c.fetchone():
+                # Update existing
+                return self.update(entry)
+
+            # Enforce max entries
+            c.execute("SELECT COUNT(*) FROM memories")
+            count = c.fetchone()[0]
+            if count >= self._max_entries:
+                # Evict oldest, lowest priority entries
+                self._evict_oldest(count - self._max_entries + 100)
+
+            params = self._entry_to_params(entry)
+            placeholders = ", ".join(["?"] * len(params))
+            c.execute(f"INSERT INTO memories VALUES ({placeholders})", params)
+            self._conn.commit()
+            return entry.id
+
+    def _evict_oldest(self, count: int) -> int:
+        """Evict oldest, lowest priority entries."""
+        c = self._conn.cursor()
+        c.execute("""
+            SELECT id FROM memories
+            ORDER BY priority ASC, accessed_at ASC, created_at ASC
+            LIMIT ?
+        """, (count,))
+        ids = [row[0] for row in c.fetchall()]
+        if ids:
+            placeholders = ", ".join(["?"] * len(ids))
+            c.execute(f"DELETE FROM memories WHERE id IN ({placeholders})", ids)
+            self._conn.commit()
+        return len(ids)
+
+    def get(self, memory_id: str) -> Optional[MemoryEntry]:
+        with self._lock:
+            c = self._conn.cursor()
+            c.execute("SELECT * FROM memories WHERE id = ?", (memory_id,))
+            row = c.fetchone()
+            if row:
+                entry = self._row_to_entry(row)
+                # Update access stats
+                c.execute(
+                    "UPDATE memories SET accessed_at = ?, access_count = access_count + 1 WHERE id = ?",
+                    (time.time(), memory_id),
+                )
+                self._conn.commit()
+                return entry
+            return None
+
+    def update(self, entry: MemoryEntry) -> bool:
+        with self._lock:
+            entry.updated_at = time.time()
+            params = self._entry_to_params(entry)
+            # Move ID to end for WHERE clause
+            params = params[1:] + (params[0],)
+            c = self._conn.cursor()
+            columns = [
+                "memory_type", "content", "metadata", "updated_at", "accessed_at",
+                "access_count", "priority", "tags", "source", "confidence", "expires_at",
+                "session_id", "turn_index", "related_entries",
+                "event_type", "participants", "location", "duration_seconds", "outcome", "emotions",
+                "category", "entities", "relations", "provenance", "verification_status", "supersedes",
+                "skill_name", "steps", "preconditions", "postconditions", "tools_required",
+                "success_rate", "execution_count", "last_executed", "version",
+                "preference_key", "preference_value", "scope", "overridden_by",
+            ]
+            set_clause = ", ".join(f"{col} = ?" for col in columns)
+            c.execute(f"UPDATE memories SET {set_clause} WHERE id = ?", params)
+            self._conn.commit()
+            return c.rowcount > 0
+
+    def delete(self, memory_id: str) -> bool:
+        with self._lock:
+            c = self._conn.cursor()
+            c.execute("DELETE FROM memories WHERE id = ?", (memory_id,))
+            self._conn.commit()
+            return c.rowcount > 0
+
+    def query(
+        self,
+        memory_type: Optional[MemoryType] = None,
+        query: str = "",
+        tags: Optional[Set[str]] = None,
+        tags_mode: str = "any",
+        limit: int = 100,
+        offset: int = 0,
+        min_priority: MemoryPriority = MemoryPriority.LOW,
+        include_expired: bool = False,
+    ) -> List[MemoryEntry]:
+        with self._lock:
+            c = self._conn.cursor()
+
+            conditions = ["priority >= ?"]
+            params: List[Any] = [min_priority.value]
+
+            if memory_type:
+                conditions.append("memory_type = ?")
+                params.append(memory_type.value)
+
+            if not include_expired:
+                conditions.append("(expires_at IS NULL OR expires_at > ?)")
+                params.append(time.time())
+
+            if tags:
+                if tags_mode == "all":
+                    # All tags must be present
+                    for tag in tags:
+                        conditions.append("tags LIKE ?")
+                        params.append(f'%"{tag}"%')
+                else:  # "any"
+                    tag_conditions = " OR ".join(["tags LIKE ?"] * len(tags))
+                    conditions.append(f"({tag_conditions})")
+                    params.extend([f'%"{tag}"%' for tag in tags])
+
+            if query:
+                # Use FTS if available, otherwise LIKE
+                try:
+                    c.execute("SELECT 1 FROM memories_fts LIMIT 1")
+                    fts_available = True
+                except sqlite3.OperationalError:
+                    fts_available = False
+
+                if fts_available:
+                    conditions.append("id IN (SELECT rowid FROM memories_fts WHERE memories_fts MATCH ?)")
+                    params.append(query)
+                else:
+                    conditions.append("(content LIKE ? OR metadata LIKE ?)")
+                    params.extend([f"%{query}%", f"%{query}%"])
+
+            where_clause = " WHERE " + " AND ".join(conditions) if conditions else ""
+            order_clause = "ORDER BY priority DESC, accessed_at DESC, created_at DESC"
+
+            c.execute(
+                f"SELECT * FROM memories {where_clause} {order_clause} LIMIT ? OFFSET ?",
+                params + [limit, offset],
+            )
+            return [self._row_to_entry(row) for row in c.fetchall()]
+
+    def count(self, memory_type: Optional[MemoryType] = None) -> int:
+        with self._lock:
+            c = self._conn.cursor()
+            if memory_type:
+                c.execute("SELECT COUNT(*) FROM memories WHERE memory_type = ?", (memory_type.value,))
+            else:
+                c.execute("SELECT COUNT(*) FROM memories")
+            return c.fetchone()[0]
+
+    def clear(self, memory_type: Optional[MemoryType] = None) -> int:
+        with self._lock:
+            c = self._conn.cursor()
+            if memory_type:
+                c.execute("DELETE FROM memories WHERE memory_type = ?", (memory_type.value,))
+            else:
+                c.execute("DELETE FROM memories")
+            self._conn.commit()
+            return c.rowcount
+
+    def get_stats(self) -> Dict[str, Any]:
+        with self._lock:
+            c = self._conn.cursor()
+            c.execute("""
+                SELECT memory_type, COUNT(*) as count,
+                       AVG(priority) as avg_priority,
+                       MAX(created_at) as newest,
+                       MIN(created_at) as oldest
+                FROM memories
+                GROUP BY memory_type
+            """)
+            by_type = {}
+            for row in c.fetchall():
+                by_type[row["memory_type"]] = {
+                    "count": row["count"],
+                    "avg_priority": row["avg_priority"],
+                    "newest": row["newest"],
+                    "oldest": row["oldest"],
+                }
+
+            c.execute("SELECT COUNT(*) as total, SUM(access_count) as total_accesses FROM memories")
+            totals = dict(c.fetchone())
+
+            return {
+                "total_entries": totals["total"],
+                "total_accesses": totals["total_accesses"],
+                "by_type": by_type,
+                "max_entries": self._max_entries,
+                "db_path": str(self._path),
+            }
+
+    def close(self) -> None:
+        """Close the database connection."""
+        with self._lock:
+            if self._conn:
+                self._conn.close()
+                self._conn = None
+
+    def __enter__(self):
+        return self
+
+    def __exit__(self, exc_type, exc_val, exc_tb):
+        self.close()
+
+
+__all__ = ["SQLiteMemoryStore"]

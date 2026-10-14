@@ -3,7 +3,7 @@ import React, { useState, useEffect, useCallback, useRef } from 'react';
 type UpdateState = 'idle' | 'available' | 'downloading' | 'ready' | 'error';
 
 const CHECK_INTERVAL_MS = 30 * 60 * 1000; // 30 minutes
-const DISABLED_KEY = 'oj-auto-update-disabled';
+const DISABLED_KEY = 'viki-auto-update-disabled';
 
 export function isAutoUpdateDisabled(): boolean {
   try {
@@ -56,9 +56,9 @@ export function UpdateChecker() {
     // Local dev escape hatch: skip the auto-update poll if explicitly
     // disabled. Vite exposes any ``VITE_``-prefixed env var on
     // ``import.meta.env``, so a frontend dev can ``export
-    // VITE_OPENJARVIS_NO_UPDATER=1`` before ``npm run tauri dev`` to
+    // VITE_viki_NO_UPDATER=1`` before ``npm run tauri dev`` to
     // silence the 30-min poll. See docs/desktop-auto-update.md.
-    const noUpdater = (import.meta as any).env?.VITE_OPENJARVIS_NO_UPDATER;
+    const noUpdater = (import.meta as any).env?.VITE_viki_NO_UPDATER;
     if (noUpdater === '1' || noUpdater === 'true') {
       return;
     }

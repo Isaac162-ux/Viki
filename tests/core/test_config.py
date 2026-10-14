@@ -6,7 +6,7 @@ from pathlib import Path
 
 import tomllib
 
-from openjarvis.core.config import (
+from viki.core.config import (
     AgentConfig,
     ChannelConfig,
     EngineConfig,
@@ -26,7 +26,7 @@ from openjarvis.core.config import (
 
 
 class TestDefaults:
-    def test_jarvis_config_defaults(self) -> None:
+    def test_viki_config_defaults(self) -> None:
         cfg = JarvisConfig()
         assert cfg.engine.default == "ollama"
         assert cfg.memory.default_backend == "sqlite"
@@ -113,10 +113,10 @@ class TestTomlLoading:
         must reach the runtime config, not be dropped by load_config()."""
         toml_file = tmp_path / "config.toml"
         toml_file.write_text(
-            '[system_prompt]\nprefix = "You are Jarvis."\nsoul_max_chars = 999\n'
+            '[system_prompt]\nprefix = "You are Viki."\nsoul_max_chars = 999\n'
         )
         cfg = load_config(toml_file)
-        assert cfg.system_prompt.prefix == "You are Jarvis."
+        assert cfg.system_prompt.prefix == "You are Viki."
         assert cfg.system_prompt.soul_max_chars == 999
 
     def test_config_without_system_prompt_block_defaults(self, tmp_path: Path) -> None:
@@ -161,7 +161,7 @@ class TestSecurityConfig:
         assert sc.pii_scanner is True
         assert sc.enforce_tool_confirmation is True
 
-    def test_security_config_on_jarvis_config(self) -> None:
+    def test_security_config_on_viki_config(self) -> None:
         cfg = JarvisConfig()
         assert isinstance(cfg.security, SecurityConfig)
 
@@ -183,7 +183,7 @@ class TestChannelConfig:
         assert cc.enabled is False
         assert cc.default_agent == "simple"
 
-    def test_channel_config_on_jarvis_config(self) -> None:
+    def test_channel_config_on_viki_config(self) -> None:
         cfg = JarvisConfig()
         assert isinstance(cfg.channel, ChannelConfig)
 
@@ -247,11 +247,11 @@ class TestAgentConfigNew:
         )
 
     def test_default_system_prompt_anchors_identity(self) -> None:
-        """#540: the hardened wording must name OpenJarvis and explicitly
+        """#540: the hardened wording must name Viki and explicitly
         deny the model's training identity so distilled models stop
         claiming to be Claude/ChatGPT/etc."""
         prompt = AgentConfig().default_system_prompt
-        assert "OpenJarvis" in prompt
+        assert "Viki" in prompt
         assert "not Claude" in prompt
 
 
@@ -433,7 +433,7 @@ class TestSandboxConfig:
     def test_defaults(self) -> None:
         sc = SandboxConfig()
         assert sc.enabled is False
-        assert sc.image == "openjarvis-sandbox:latest"
+        assert sc.image == "viki-sandbox:latest"
         assert sc.timeout == 300
         assert sc.workspace == ""
         assert sc.mount_allowlist_path == ""
@@ -452,7 +452,7 @@ class TestSandboxConfig:
         assert sc.timeout == 600
         assert sc.runtime == "podman"
 
-    def test_on_jarvis_config(self) -> None:
+    def test_on_viki_config(self) -> None:
         cfg = JarvisConfig()
         assert isinstance(cfg.sandbox, SandboxConfig)
         assert cfg.sandbox.enabled is False
@@ -486,7 +486,7 @@ class TestSchedulerConfig:
         assert sc.poll_interval == 30
         assert sc.db_path == "/tmp/sched.db"
 
-    def test_on_jarvis_config(self) -> None:
+    def test_on_viki_config(self) -> None:
         cfg = JarvisConfig()
         assert isinstance(cfg.scheduler, SchedulerConfig)
         assert cfg.scheduler.enabled is False
@@ -511,7 +511,7 @@ class TestSchedulerConfig:
 class TestApplyTomlSectionListNormalization:
     def test_apply_toml_section_list_to_str_field(self) -> None:
         """TOML arrays assigned to str-typed fields should be joined with ','."""
-        from openjarvis.core.config import ToolsConfig, _apply_toml_section
+        from viki.core.config import ToolsConfig, _apply_toml_section
 
         target = ToolsConfig()
         tools = ["code_interpreter", "web_search", "file_read"]
@@ -522,7 +522,7 @@ class TestApplyTomlSectionListNormalization:
     def test_apply_toml_section_list_to_property_setter(self) -> None:
         """TOML arrays passed to backward-compat property setters should be
         normalized to comma-separated strings, not passed as raw lists."""
-        from openjarvis.core.config import _apply_toml_section
+        from viki.core.config import _apply_toml_section
 
         target = LearningConfig()
         _apply_toml_section(
@@ -536,7 +536,7 @@ class TestApplyTomlSectionListNormalization:
 
     def test_apply_toml_section_agent_tools_list(self) -> None:
         """Agent tools should work as a TOML array."""
-        from openjarvis.core.config import _apply_toml_section
+        from viki.core.config import _apply_toml_section
 
         target = AgentConfig()
         _apply_toml_section(
@@ -553,7 +553,7 @@ class TestWhatsAppBaileysChannelConfig:
     def test_defaults(self) -> None:
         wc = WhatsAppBaileysChannelConfig()
         assert wc.auth_dir == ""
-        assert wc.assistant_name == "Jarvis"
+        assert wc.assistant_name == "Viki"
         assert wc.assistant_has_own_number is False
 
     def test_custom_values(self) -> None:
@@ -577,7 +577,7 @@ class TestWhatsAppBaileysChannelConfig:
 
 
 def test_mining_config_absent_means_none(tmp_path):
-    from openjarvis.core.config import load_config
+    from viki.core.config import load_config
 
     cfg_path = tmp_path / "config.toml"
     cfg_path.write_text("")  # empty config
@@ -588,8 +588,8 @@ def test_mining_config_absent_means_none(tmp_path):
 def test_mining_config_solo_parsed(tmp_path):
     from pathlib import Path
 
-    from openjarvis.core.config import load_config
-    from openjarvis.mining._stubs import SoloTarget
+    from viki.core.config import load_config
+    from viki.mining._stubs import SoloTarget
 
     src = Path(__file__).parent.parent / "mining" / "fixtures" / "config_minimal.toml"
     target = tmp_path / "config.toml"
@@ -607,12 +607,12 @@ def test_mining_config_solo_parsed(tmp_path):
 def test_mining_config_pool_parsed_as_pool_target(tmp_path):
     from pathlib import Path
 
-    from openjarvis.core.config import load_config
-    from openjarvis.mining._stubs import PoolTarget
+    from viki.core.config import load_config
+    from viki.mining._stubs import PoolTarget
 
     src = Path(__file__).parent.parent / "mining" / "fixtures" / "config_pool_v2.toml"
     target = tmp_path / "config.toml"
     target.write_text(src.read_text())
     cfg = load_config(target)
     assert isinstance(cfg.mining.submit_target, PoolTarget)
-    assert cfg.mining.submit_target.url == "https://pool.openjarvis.ai/submit"
+    assert cfg.mining.submit_target.url == "https://pool.viki.ai/submit"

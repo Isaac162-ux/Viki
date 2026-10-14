@@ -1,0 +1,34 @@
+ViKi AI - Personal AI Assistant with Holographic Interface
+==========================================================
+
+This software includes code from OpenJarvis (https://github.com/open-jarvis/OpenJarvis),
+Copyright 2025 The OpenJarvis Authors, licensed under Apache-2.0.
+
+Original OpenJarvis work by:
+- Jon Saad-Falcon, Avanika Narayan, Robby Manihani, Tanvir Bhathal, Herumb Shandilya,
+  Hakki Orhun Akengin, Gabriel Bo, Andrew Park, Matthew Hart, Caia Costello,
+  Chuan Li, Christopher Ré, Azalia Mirhoseini
+- Developed at Hazy Research and the Scaling Intelligence Lab at Stanford SAIL
+
+OpenJarvis is part of Intelligence Per Watt (https://www.intelligence-per-watt.ai/).
+
+---
+
+ViKi AI modifications and extensions:
+- Holographic interface (Three.js/WebGL orb component)
+- Voice I/O integration (STT/TTS with local and cloud backends)
+- ViKiModelProvider abstraction layer
+- Model routing with capability-based selection
+- Circuit breaker fallback mechanism
+- Cloud provider adapters (Gemini, Groq, OpenRouter)
+- Rebranding from OpenJarvis to ViKi
+- Configuration directory: ~/.viki (was ~/.openjarvis)
+- CLI entry point: viki (was jarvis)
+- Tauri desktop app: com.viki.desktop (was com.openjarvis.desktop)
+
+---
+
+Third-party dependencies:
+See pyproject.toml, frontend/package.json, and rust/Cargo.toml for complete lists.
+
+All third-party dependencies retain their original licenses.

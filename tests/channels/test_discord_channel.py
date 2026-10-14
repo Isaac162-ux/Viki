@@ -11,10 +11,10 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 
-from openjarvis.channels._stubs import ChannelStatus
-from openjarvis.channels.discord_channel import DiscordChannel
-from openjarvis.core.events import EventBus, EventType
-from openjarvis.core.registry import ChannelRegistry
+from viki.channels._stubs import ChannelStatus
+from viki.channels.discord_channel import DiscordChannel
+from viki.core.events import EventBus, EventType
+from viki.core.registry import ChannelRegistry
 from tests.channels.channel_test_helpers import make_common_channel_tests
 
 
@@ -257,7 +257,7 @@ class TestDisconnectStopsRealListener:
         with (
             patch.dict(sys.modules, {"discord": discord}),
             patch(
-                "openjarvis.channels.discord_channel.asyncio.new_event_loop",
+                "viki.channels.discord_channel.asyncio.new_event_loop",
                 side_effect=make_event_loop,
             ),
         ):
@@ -336,7 +336,7 @@ class TestDisconnectStopsRealListener:
         with (
             patch.dict(sys.modules, {"discord": discord}),
             patch(
-                "openjarvis.channels.discord_channel.asyncio.new_event_loop",
+                "viki.channels.discord_channel.asyncio.new_event_loop",
                 side_effect=make_event_loop,
             ),
         ):
@@ -385,10 +385,10 @@ class TestWireChannelEndToEnd:
     """
 
     def test_reply_hits_real_channel_id_and_message_reference(self, tmp_path):
-        from openjarvis.channels._stubs import ChannelMessage
-        from openjarvis.core.config import JarvisConfig
-        from openjarvis.core.events import EventBus
-        from openjarvis.system import JarvisSystem
+        from viki.channels._stubs import ChannelMessage
+        from viki.core.config import JarvisConfig
+        from viki.core.events import EventBus
+        from viki.system import JarvisSystem
 
         config = JarvisConfig()
         config.sessions.db_path = str(tmp_path / "sessions.db")

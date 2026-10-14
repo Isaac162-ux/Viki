@@ -34,13 +34,13 @@ export interface AgentEvent {
 
 // ── localStorage persistence ──────────────────────────────────────────
 
-const CONVERSATIONS_KEY = 'openjarvis-conversations';
-const SETTINGS_KEY = 'openjarvis-settings';
-const OPTIN_KEY = 'openjarvis-optin';
-const OPTIN_NAME_KEY = 'openjarvis-display-name';
-const OPTIN_EMAIL_KEY = 'openjarvis-email';
-const OPTIN_ANONID_KEY = 'openjarvis-anon-id';
-const OPTIN_SEEN_KEY = 'openjarvis-optin-seen';
+const CONVERSATIONS_KEY = 'viki-conversations';
+const SETTINGS_KEY = 'viki-settings';
+const OPTIN_KEY = 'viki-optin';
+const OPTIN_NAME_KEY = 'viki-display-name';
+const OPTIN_EMAIL_KEY = 'viki-email';
+const OPTIN_ANONID_KEY = 'viki-anon-id';
+const OPTIN_SEEN_KEY = 'viki-optin-seen';
 
 interface ConversationStore {
   version: 1;
@@ -96,8 +96,8 @@ export type ThemeMode = 'light' | 'dark' | 'system';
 interface Settings {
   theme: ThemeMode;
   apiUrl: string;
-  // Local server API key (OPENJARVIS_API_KEY). Sent as a Bearer token on
-  // /v1 + /api requests so a key-protected `jarvis serve` doesn't 401 the
+  // Local server API key (viki_API_KEY). Sent as a Bearer token on
+  // /v1 + /api requests so a key-protected `viki serve` doesn't 401 the
   // frontend (#266). Empty = no auth header (keyless local default).
   apiKey: string;
   fontSize: 'small' | 'default' | 'large';

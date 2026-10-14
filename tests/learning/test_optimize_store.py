@@ -1,9 +1,9 @@
-"""Tests for openjarvis.optimize.store module."""
+"""Tests for viki.optimize.store module."""
 
 from __future__ import annotations
 
-from openjarvis.learning.optimize.store import OptimizationStore
-from openjarvis.learning.optimize.types import (
+from viki.learning.optimize.store import OptimizationStore
+from viki.learning.optimize.types import (
     OptimizationRun,
     SampleScore,
     SearchDimension,

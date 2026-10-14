@@ -1,4 +1,4 @@
-"""Tests for ``jarvis model`` subcommands."""
+"""Tests for ``viki model`` subcommands."""
 
 from __future__ import annotations
 
@@ -7,11 +7,11 @@ from unittest import mock
 
 from click.testing import CliRunner
 
-from openjarvis.cli import cli
-from openjarvis.core.config import JarvisConfig
+from viki.cli import cli
+from viki.core.config import JarvisConfig
 
 # Import the actual module (not the Click group attribute)
-_model_mod = importlib.import_module("openjarvis.cli.model")
+_model_mod = importlib.import_module("viki.cli.model")
 
 
 def _mock_engine():

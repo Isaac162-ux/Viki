@@ -7,7 +7,7 @@ from pathlib import Path
 
 import pytest
 
-from openjarvis.server.session_store import SessionStore
+from viki.server.session_store import SessionStore
 
 
 @pytest.fixture

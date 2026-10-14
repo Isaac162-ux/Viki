@@ -6,12 +6,12 @@ from collections import Counter
 
 import pytest
 
-from openjarvis.agents import tool_resolver
-from openjarvis.connectors.store import KnowledgeStore
-from openjarvis.core.registry import ToolRegistry
-from openjarvis.core.types import ToolResult
-from openjarvis.tools import description_loader
-from openjarvis.tools._stubs import BaseTool, ToolSpec
+from viki.agents import tool_resolver
+from viki.connectors.store import KnowledgeStore
+from viki.core.registry import ToolRegistry
+from viki.core.types import ToolResult
+from viki.tools import description_loader
+from viki.tools._stubs import BaseTool, ToolSpec
 
 
 class _AlphaTool(BaseTool):
@@ -157,12 +157,12 @@ def test_configured_tools_normalize_lists_and_comma_separated_strings(
 def test_managed_file_tools_use_application_policy(
     tmp_path, monkeypatch, custom_spec, invalid_policy
 ):
-    from openjarvis.core.config import JarvisConfig
-    from openjarvis.tools.file_read import FileReadTool
+    from viki.core.config import JarvisConfig
+    from viki.tools.file_read import FileReadTool
 
     cfg = JarvisConfig()
     cfg.security.allowed_dirs = None if invalid_policy else [str(tmp_path / "allowed")]
-    monkeypatch.setattr("openjarvis.core.config.load_config", lambda: JarvisConfig())
+    monkeypatch.setattr("viki.core.config.load_config", lambda: JarvisConfig())
     ToolRegistry.register_value("file_read", FileReadTool)
     entry = (
         {"type": "function", "function": {"name": "file_read"}}

@@ -1,10 +1,10 @@
-"""Tests for the ``jarvis ask --research`` planner-model resolution."""
+"""Tests for the ``viki ask --research`` planner-model resolution."""
 
 from __future__ import annotations
 
-from openjarvis.agents.research_loop import DEFAULT_PLANNER_MODEL
-from openjarvis.cli.ask import _resolve_research_model
-from openjarvis.core.config import JarvisConfig
+from viki.agents.research_loop import DEFAULT_PLANNER_MODEL
+from viki.cli.ask import _resolve_research_model
+from viki.core.config import JarvisConfig
 
 
 def test_explicit_model_flag_wins() -> None:

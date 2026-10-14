@@ -1,11 +1,11 @@
 # Browser Assistant
 
-A web browsing agent that uses OpenJarvis's orchestrator loop with browser,
+A web browsing agent that uses Viki's orchestrator loop with browser,
 web_search, and think tools to find and synthesize information from the web.
 
 ## Requirements
 
-- OpenJarvis installed (`git clone https://github.com/open-jarvis/OpenJarvis.git && cd OpenJarvis && uv sync` or `uv sync --extra dev`)
+- Viki installed (`git clone https://github.com/open-viki/Viki.git && cd Viki && uv sync` or `uv sync --extra dev`)
 - An inference engine running (Ollama, cloud API, vLLM, etc.)
 
 ## Usage
@@ -19,7 +19,7 @@ python examples/browser_assistant/browser_assistant.py --query "Compare AWS vs G
 
 ## How It Works
 
-The script creates a `Jarvis` instance configured with the `orchestrator` agent
+The script creates a `Viki` instance configured with the `orchestrator` agent
 and three tools:
 
 - **browser** -- navigates to web pages and extracts content

@@ -1,7 +1,7 @@
-from openjarvis.agents._stubs import AgentResult
-from openjarvis.agents.executor import AgentExecutor
-from openjarvis.agents.manager import AgentManager
-from openjarvis.core.events import EventBus, EventType
+from viki.agents._stubs import AgentResult
+from viki.agents.executor import AgentExecutor
+from viki.agents.manager import AgentManager
+from viki.core.events import EventBus, EventType
 
 
 def test_budget_exceeded_sets_status(tmp_path):

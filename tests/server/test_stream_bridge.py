@@ -10,11 +10,11 @@ import pytest
 
 pytest.importorskip("fastapi")
 
-from openjarvis.agents._stubs import AgentResult  # noqa: E402
-from openjarvis.core.events import EventBus  # noqa: E402
-from openjarvis.core.types import ToolResult  # noqa: E402
-from openjarvis.server.models import ChatCompletionRequest  # noqa: E402
-from openjarvis.server.stream_bridge import AgentStreamBridge  # noqa: E402
+from viki.agents._stubs import AgentResult  # noqa: E402
+from viki.core.events import EventBus  # noqa: E402
+from viki.core.types import ToolResult  # noqa: E402
+from viki.server.models import ChatCompletionRequest  # noqa: E402
+from viki.server.stream_bridge import AgentStreamBridge  # noqa: E402
 
 
 def _streamed_content(events: list[str]) -> str:
@@ -31,7 +31,7 @@ def _streamed_content(events: list[str]) -> str:
 
 
 def test_stream_replays_grounded_agent_result_without_second_inference():
-    grounded_content = "My name is Jarvis. The tool reports 72 degrees."
+    grounded_content = "My name is Viki. The tool reports 72 degrees."
     agent = MagicMock()
     agent._model = "configured-model"
     agent.run.return_value = AgentResult(

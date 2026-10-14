@@ -1,4 +1,4 @@
-"""Tests for ``jarvis ask --agent`` CLI integration."""
+"""Tests for ``viki ask --agent`` CLI integration."""
 
 from __future__ import annotations
 
@@ -9,12 +9,12 @@ from unittest.mock import MagicMock, patch
 import pytest
 from click.testing import CliRunner
 
-from openjarvis.agents._stubs import AgentContext, AgentResult, ToolUsingAgent
-from openjarvis.cli import cli
-from openjarvis.core.types import Role, StepType, ToolCall, ToolResult
-from openjarvis.tools._stubs import BaseTool, ToolSpec
+from viki.agents._stubs import AgentContext, AgentResult, ToolUsingAgent
+from viki.cli import cli
+from viki.core.types import Role, StepType, ToolCall, ToolResult
+from viki.tools._stubs import BaseTool, ToolSpec
 
-_ask_mod = importlib.import_module("openjarvis.cli.ask")
+_ask_mod = importlib.import_module("viki.cli.ask")
 
 
 def _mock_engine(content="Hello from engine"):
@@ -34,9 +34,9 @@ def _mock_engine(content="Hello from engine"):
 
 def _register_agents():
     """Re-register agents after registry clear."""
-    from openjarvis.agents.orchestrator import OrchestratorAgent
-    from openjarvis.agents.simple import SimpleAgent
-    from openjarvis.core.registry import AgentRegistry
+    from viki.agents.orchestrator import OrchestratorAgent
+    from viki.agents.simple import SimpleAgent
+    from viki.core.registry import AgentRegistry
 
     for name, cls in [
         ("simple", SimpleAgent),
@@ -48,12 +48,12 @@ def _register_agents():
 
 def _register_tools():
     """Re-register tools after registry clear."""
-    from openjarvis.core.registry import ToolRegistry
-    from openjarvis.tools.calculator import CalculatorTool
-    from openjarvis.tools.file_read import FileReadTool
-    from openjarvis.tools.llm_tool import LLMTool
-    from openjarvis.tools.retrieval import RetrievalTool
-    from openjarvis.tools.think import ThinkTool
+    from viki.core.registry import ToolRegistry
+    from viki.tools.calculator import CalculatorTool
+    from viki.tools.file_read import FileReadTool
+    from viki.tools.llm_tool import LLMTool
+    from viki.tools.retrieval import RetrievalTool
+    from viki.tools.think import ThinkTool
 
     for name, cls in [
         ("calculator", CalculatorTool),
@@ -107,8 +107,8 @@ class _EngineSetup:
 
 @pytest.fixture
 def agent_setup():
-    from openjarvis.core.config import JarvisConfig
-    from openjarvis.core.registry import AgentRegistry, ToolRegistry
+    from viki.core.config import JarvisConfig
+    from viki.core.registry import AgentRegistry, ToolRegistry
 
     engine = _mock_engine("unused")
     config = JarvisConfig()
@@ -153,7 +153,7 @@ def mock_setup():
         patch.object(_ask_mod, "register_builtin_models"),
         patch.object(_ask_mod, "merge_discovered_models"),
     ):
-        from openjarvis.core.config import JarvisConfig
+        from viki.core.config import JarvisConfig
 
         config = JarvisConfig()
         config.traces.enabled = False
@@ -219,7 +219,7 @@ class TestAskAgentOption:
         """When --agent is omitted, ``config.agent.default_agent`` is used.
 
         The default ``JarvisConfig`` sets ``default_agent = "simple"``, so
-        ``jarvis ask "..."`` should route through SimpleAgent rather than
+        ``viki ask "..."`` should route through SimpleAgent rather than
         the direct-to-engine path. Without this fallback, persona settings
         (``default_system_prompt`` and SOUL.md/MEMORY.md/USER.md) would be
         silently bypassed.
@@ -239,7 +239,7 @@ class TestAskAgentOption:
     ):
         """When config's ``default_agent`` is blank and --agent is omitted,
         the original direct-to-engine path is preserved."""
-        from openjarvis.core.config import JarvisConfig
+        from viki.core.config import JarvisConfig
 
         cfg = JarvisConfig()
         cfg.traces.enabled = False
@@ -297,8 +297,8 @@ class TestAskSkillsAndTraces:
         runner,
         tmp_path,
     ):
-        from openjarvis.core.config import JarvisConfig
-        from openjarvis.traces.store import TraceStore
+        from viki.core.config import JarvisConfig
+        from viki.traces.store import TraceStore
 
         skill_dir = tmp_path / "skills" / "hermes" / "llm-wiki"
         skill_dir.mkdir(parents=True)
@@ -399,8 +399,8 @@ class TestAskSkillsAndTraces:
 
 class TestBuildTools:
     def test_build_calculator(self, mock_setup):
-        from openjarvis.cli.ask import _build_tools
-        from openjarvis.core.config import JarvisConfig
+        from viki.cli.ask import _build_tools
+        from viki.core.config import JarvisConfig
 
         _register_tools()
         config = JarvisConfig()
@@ -409,8 +409,8 @@ class TestBuildTools:
         assert tools[0].tool_id == "calculator"
 
     def test_build_think(self, mock_setup):
-        from openjarvis.cli.ask import _build_tools
-        from openjarvis.core.config import JarvisConfig
+        from viki.cli.ask import _build_tools
+        from viki.core.config import JarvisConfig
 
         _register_tools()
         config = JarvisConfig()
@@ -419,24 +419,24 @@ class TestBuildTools:
         assert tools[0].tool_id == "think"
 
     def test_build_unknown_tool_skipped(self, mock_setup):
-        from openjarvis.cli.ask import _build_tools
-        from openjarvis.core.config import JarvisConfig
+        from viki.cli.ask import _build_tools
+        from viki.core.config import JarvisConfig
 
         config = JarvisConfig()
         tools = _build_tools(["nonexistent"], config, mock_setup, "test-model")
         assert len(tools) == 0
 
     def test_build_empty_names(self, mock_setup):
-        from openjarvis.cli.ask import _build_tools
-        from openjarvis.core.config import JarvisConfig
+        from viki.cli.ask import _build_tools
+        from viki.core.config import JarvisConfig
 
         config = JarvisConfig()
         tools = _build_tools(["", " "], config, mock_setup, "test-model")
         assert len(tools) == 0
 
     def test_build_multiple_tools(self, mock_setup):
-        from openjarvis.cli.ask import _build_tools
-        from openjarvis.core.config import JarvisConfig
+        from viki.cli.ask import _build_tools
+        from viki.core.config import JarvisConfig
 
         _register_tools()
         config = JarvisConfig()
@@ -456,11 +456,11 @@ class TestPersonaFilesReachModel:
         self, runner, monkeypatch, tmp_path
     ):
         """SOUL.md content must appear in the system message sent to the engine."""
-        from openjarvis.core.config import JarvisConfig
+        from viki.core.config import JarvisConfig
 
         # Write a SOUL.md with a unique sentinel string we can grep for
         soul = tmp_path / "SOUL.md"
-        soul.write_text("PERSONA_SENTINEL_zh_jarvis", encoding="utf-8")
+        soul.write_text("PERSONA_SENTINEL_zh_viki", encoding="utf-8")
         memory = tmp_path / "MEMORY.md"
         memory.write_text("MEMORY_SENTINEL", encoding="utf-8")
         user = tmp_path / "USER.md"
@@ -503,7 +503,7 @@ class TestPersonaFilesReachModel:
         assert system_messages, f"No SYSTEM message in {messages!r}"
         joined = "\n".join(m.content for m in system_messages)
         assert "BASELINE_TEMPLATE" in joined
-        assert "PERSONA_SENTINEL_zh_jarvis" in joined
+        assert "PERSONA_SENTINEL_zh_viki" in joined
         assert "MEMORY_SENTINEL" in joined
         assert "USER_SENTINEL" in joined
 
@@ -511,7 +511,7 @@ class TestPersonaFilesReachModel:
         self, runner, monkeypatch, tmp_path
     ):
         """Orchestrator explicitly accepts and applies persona wiring."""
-        from openjarvis.core.config import JarvisConfig
+        from viki.core.config import JarvisConfig
 
         soul = tmp_path / "SOUL.md"
         soul.write_text("ORCH_PERSONA_SENTINEL", encoding="utf-8")

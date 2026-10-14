@@ -9,8 +9,8 @@ import httpx
 import pytest
 from fastapi import FastAPI
 
-from openjarvis.cli import daemon_cmd
-from openjarvis.server.daemon import DaemonServer, run_server
+from viki.cli import daemon_cmd
+from viki.server.daemon import DaemonServer, run_server
 
 
 @pytest.fixture

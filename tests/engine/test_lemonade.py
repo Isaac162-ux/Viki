@@ -10,10 +10,10 @@ import httpx
 import pytest
 import respx
 
-from openjarvis.core.registry import EngineRegistry
-from openjarvis.core.types import Message, Role
-from openjarvis.engine._base import EngineConnectionError
-from openjarvis.engine.openai_compat_engines import LemonadeEngine
+from viki.core.registry import EngineRegistry
+from viki.core.types import Message, Role
+from viki.engine._base import EngineConnectionError
+from viki.engine.openai_compat_engines import LemonadeEngine
 
 
 @pytest.fixture()

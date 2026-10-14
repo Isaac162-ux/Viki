@@ -1,10 +1,10 @@
-"""Tests for resolve_mcp_servers in openjarvis.core.config."""
+"""Tests for resolve_mcp_servers in viki.core.config."""
 
 from pathlib import Path
 
 import pytest
 
-from openjarvis.core.config import resolve_mcp_servers
+from viki.core.config import resolve_mcp_servers
 
 
 class TestResolveMcpServers:

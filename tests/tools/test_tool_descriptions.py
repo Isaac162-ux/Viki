@@ -2,8 +2,8 @@
 
 from __future__ import annotations
 
-from openjarvis.core.types import ToolResult
-from openjarvis.tools._stubs import (
+from viki.core.types import ToolResult
+from viki.tools._stubs import (
     BaseTool,
     ToolSpec,
     build_tool_descriptions,

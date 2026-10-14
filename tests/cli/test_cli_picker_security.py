@@ -6,20 +6,20 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 
-from openjarvis.cli._model_switch import (
+from viki.cli._model_switch import (
     MAX_MODEL_ID_LEN,
     interactive_pick_model,
     resolve_chat_cli_model,
     sanitize_model_id,
     tty_wants_model_picker,
 )
-from openjarvis.cli._runtime_panel import (
+from viki.cli._runtime_panel import (
     MAX_NUM_CTX,
     ChatRuntimeOptions,
     _parse_int,
     tty_wants_runtime_panel,
 )
-from openjarvis.core.config import JarvisConfig
+from viki.core.config import JarvisConfig
 
 
 class TestSanitizeModelId:
@@ -62,7 +62,7 @@ class TestRuntimePanelSecurity:
         assert opts.to_engine_kwargs(engine_name="ollama")["num_gpu"] == 999
 
     def test_extreme_num_gpu_capped(self) -> None:
-        from openjarvis.cli._runtime_panel import MAX_NUM_GPU_LAYERS
+        from viki.cli._runtime_panel import MAX_NUM_GPU_LAYERS
 
         opts = ChatRuntimeOptions(num_gpu=10**9)
         assert (
@@ -140,10 +140,10 @@ class TestTtyGates:
 
 class TestAgentEngineOptionsIsolation:
     def test_engine_options_merge_does_not_leak_extra_keys(self) -> None:
-        from openjarvis.agents._stubs import _ALLOWED_ENGINE_OPTION_KEYS
-        from openjarvis.agents.simple import SimpleAgent
-        from openjarvis.core.registry import AgentRegistry
-        from openjarvis.core.types import Message, Role
+        from viki.agents._stubs import _ALLOWED_ENGINE_OPTION_KEYS
+        from viki.agents.simple import SimpleAgent
+        from viki.core.registry import AgentRegistry
+        from viki.core.types import Message, Role
 
         engine = MagicMock()
         engine.generate.return_value = {"content": "x"}

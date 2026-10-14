@@ -1,4 +1,4 @@
-use openjarvis_cross_device_travel::{
+use viki_cross_device_travel::{
     protocol::*,
     runtime::{DeviceTransport, Orchestrator},
     travel::{decompose, DemoTransport, Scenario},

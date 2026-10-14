@@ -1,11 +1,11 @@
 [package]
-name = "openjarvis-mcp"
+name = "viki-mcp"
 version = "0.1.0"
 edition = "2021"
 
 [dependencies]
-openjarvis-core = { path = "../openjarvis-core" }
-openjarvis-tools = { path = "../openjarvis-tools" }
+viki-core = { path = "../viki-core" }
+viki-tools = { path = "../viki-tools" }
 serde = { workspace = true }
 serde_json = { workspace = true }
 thiserror = { workspace = true }

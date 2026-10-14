@@ -1,6 +1,6 @@
 //! MemoryBackend trait for all storage backends.
 
-use openjarvis_core::{OpenJarvisError, RetrievalResult};
+use viki_core::{VikiError, RetrievalResult};
 use serde_json::Value;
 
 pub trait MemoryBackend: Send + Sync {
@@ -10,13 +10,13 @@ pub trait MemoryBackend: Send + Sync {
         content: &str,
         source: &str,
         metadata: Option<&Value>,
-    ) -> Result<String, OpenJarvisError>;
+    ) -> Result<String, VikiError>;
     fn retrieve(
         &self,
         query: &str,
         top_k: usize,
-    ) -> Result<Vec<RetrievalResult>, OpenJarvisError>;
-    fn delete(&self, doc_id: &str) -> Result<bool, OpenJarvisError>;
-    fn clear(&self) -> Result<(), OpenJarvisError>;
-    fn count(&self) -> Result<usize, OpenJarvisError>;
+    ) -> Result<Vec<RetrievalResult>, VikiError>;
+    fn delete(&self, doc_id: &str) -> Result<bool, VikiError>;
+    fn clear(&self) -> Result<(), VikiError>;
+    fn count(&self) -> Result<usize, VikiError>;
 }

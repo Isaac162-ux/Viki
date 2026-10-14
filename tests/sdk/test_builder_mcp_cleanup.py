@@ -16,18 +16,18 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 
-from openjarvis.core.config import JarvisConfig
-from openjarvis.system.builder import SystemBuilder
+from viki.core.config import JarvisConfig
+from viki.system.builder import SystemBuilder
 
 
 @pytest.fixture
 def _mock_mcp_stack():
     """Patch MCPClient / transports / MCPToolProvider so no real I/O happens."""
     with (
-        patch("openjarvis.mcp.client.MCPClient") as MockClient,
-        patch("openjarvis.mcp.transport.StreamableHTTPTransport") as MockHttp,
-        patch("openjarvis.mcp.transport.StdioTransport") as MockStdio,
-        patch("openjarvis.tools.mcp_adapter.MCPToolProvider") as MockProvider,
+        patch("viki.mcp.client.MCPClient") as MockClient,
+        patch("viki.mcp.transport.StreamableHTTPTransport") as MockHttp,
+        patch("viki.mcp.transport.StdioTransport") as MockStdio,
+        patch("viki.tools.mcp_adapter.MCPToolProvider") as MockProvider,
     ):
         MockProvider.return_value.discover.return_value = []
         MockClient.return_value.initialize.return_value = None

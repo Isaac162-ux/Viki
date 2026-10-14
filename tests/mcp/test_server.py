@@ -4,17 +4,17 @@ from __future__ import annotations
 
 import pytest
 
-from openjarvis.core.events import EventBus, EventType
-from openjarvis.core.types import ToolResult
-from openjarvis.mcp.protocol import (
+from viki.core.events import EventBus, EventType
+from viki.core.types import ToolResult
+from viki.mcp.protocol import (
     INVALID_PARAMS,
     METHOD_NOT_FOUND,
     MCPRequest,
 )
-from openjarvis.mcp.server import MCPServer
-from openjarvis.tools._stubs import BaseTool, ToolSpec
-from openjarvis.tools.calculator import CalculatorTool
-from openjarvis.tools.think import ThinkTool
+from viki.mcp.server import MCPServer
+from viki.tools._stubs import BaseTool, ToolSpec
+from viki.tools.calculator import CalculatorTool
+from viki.tools.think import ThinkTool
 
 
 class _ProbeTool(BaseTool):
@@ -141,7 +141,7 @@ class TestMCPServer:
         assert "protocolVersion" in result
         assert "capabilities" in result
         assert "serverInfo" in result
-        assert result["serverInfo"]["name"] == "openjarvis"
+        assert result["serverInfo"]["name"] == "viki"
 
     def test_initialize_capabilities(self, server):
         req = MCPRequest(method="initialize", id=1)

@@ -2,8 +2,8 @@
 
 from __future__ import annotations
 
-from openjarvis.cli.serve import _resolve_server_model
-from openjarvis.core.config import JarvisConfig
+from viki.cli.serve import _resolve_server_model
+from viki.core.config import JarvisConfig
 
 
 class _FakeEngine:

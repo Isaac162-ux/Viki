@@ -8,9 +8,9 @@ from unittest.mock import MagicMock
 import httpx
 import pytest
 
-from openjarvis.core.types import Message, Role
-from openjarvis.engine._base import EngineConnectionError
-from openjarvis.engine.nim import NIMEngine
+from viki.core.types import Message, Role
+from viki.engine._base import EngineConnectionError
+from viki.engine.nim import NIMEngine
 
 _HOST = "https://nim.test"
 _CHAT_URL = f"{_HOST}/v1/chat/completions"

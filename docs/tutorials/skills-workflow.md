@@ -8,27 +8,27 @@ description: End-to-end tutorial — install skills, use them with an agent, dis
 This tutorial walks through the complete skills lifecycle: installing skills from public sources, using them with a local agent, discovering patterns from trace history, and optimizing skill descriptions with DSPy. By the end you will have a working skills setup that improves over time.
 
 !!! note "Before you begin"
-    This tutorial assumes OpenJarvis is installed with Ollama running and a model available (e.g., `qwen3.5:9b`). If you have not completed setup yet, start with the [Quick Start guide](../getting-started/quickstart.md).
+    This tutorial assumes viki is installed with Ollama running and a model available (e.g., `qwen3.5:9b`). If you have not completed setup yet, start with the [Quick Start guide](../getting-started/quickstart.md).
 
 ## Step 1: Install Skills from Hermes Agent
 
-OpenJarvis can import skills from the [Hermes Agent](https://github.com/NousResearch/hermes-agent) skill library maintained by NousResearch. Let's install a few useful ones.
+viki can import skills from the [Hermes Agent](https://github.com/NousResearch/hermes-agent) skill library maintained by NousResearch. Let's install a few useful ones.
 
 ```bash
 # Install individual skills
-jarvis skill install hermes:llm-wiki
-jarvis skill install hermes:arxiv
+viki skill install hermes:llm-wiki
+viki skill install hermes:arxiv
 
 # Or bulk install an entire category
-jarvis skill sync hermes --category research
+viki skill sync hermes --category research
 ```
 
-The first install clones the Hermes repo to `~/.openjarvis/skill-cache/hermes/` (one-time, ~5s). Subsequent installs reuse the cache.
+The first install clones the Hermes repo to `~/.viki/skill-cache/hermes/` (one-time, ~5s). Subsequent installs reuse the cache.
 
 Verify what's installed:
 
 ```bash
-jarvis skill list
+viki skill list
 ```
 
 You should see a table with each skill's name, description, version, and tags.
@@ -38,7 +38,7 @@ You should see a table with each skill's name, description, version, and tags.
 Let's look at what the `llm-wiki` skill contains:
 
 ```bash
-jarvis skill info llm-wiki
+viki skill info llm-wiki
 ```
 
 This shows the skill's metadata — author, description, tags, capabilities, whether it has structured steps or markdown instructions, and its invocation flags.
@@ -46,13 +46,13 @@ This shows the skill's metadata — author, description, tags, capabilities, whe
 You can also inspect the raw SKILL.md:
 
 ```bash
-cat ~/.openjarvis/skills/hermes/llm-wiki/SKILL.md | head -40
+cat ~/.viki/skills/hermes/llm-wiki/SKILL.md | head -40
 ```
 
 The `.source` file records provenance:
 
 ```bash
-cat ~/.openjarvis/skills/hermes/llm-wiki/.source
+cat ~/.viki/skills/hermes/llm-wiki/.source
 ```
 
 This shows the source (`hermes:llm-wiki`), the git commit it was imported from, which tool names were translated (e.g., `Edit→file_edit`), and the install timestamp.
@@ -62,7 +62,7 @@ This shows the source (`hermes:llm-wiki`), the git commit it was imported from, 
 Now let's ask the agent a question that should trigger skill usage:
 
 ```bash
-jarvis ask --agent orchestrator "Use the llm-wiki skill to explain how model entries should be organized" \
+viki ask --agent orchestrator "Use the llm-wiki skill to explain how model entries should be organized" \
   --engine ollama --model qwen3.5:9b
 ```
 
@@ -75,7 +75,7 @@ The agent will:
 Try the other installed skill too:
 
 ```bash
-jarvis ask --agent orchestrator "Use the arxiv skill to outline how you would research transformer efficiency" \
+viki ask --agent orchestrator "Use the arxiv skill to outline how you would research transformer efficiency" \
   --engine ollama --model qwen3.5:9b
 ```
 
@@ -86,19 +86,19 @@ The `simple` agent intentionally cannot call tools. Use `orchestrator` or anothe
 Create a new skill directory:
 
 ```bash
-mkdir -p ~/.openjarvis/skills/my-reviewer
+mkdir -p ~/.viki/skills/my-reviewer
 ```
 
 Write a SKILL.md:
 
 ```bash
-cat > ~/.openjarvis/skills/my-reviewer/SKILL.md << 'EOF'
+cat > ~/.viki/skills/my-reviewer/SKILL.md << 'EOF'
 ---
 name: my-reviewer
 description: Review code changes with a security-first approach
 license: MIT
 metadata:
-  openjarvis:
+  viki:
     version: "0.1.0"
     author: me
     tags: [coding, review, security]
@@ -118,13 +118,13 @@ EOF
 Verify it's discovered:
 
 ```bash
-jarvis skill list
+viki skill list
 ```
 
 You should see `my-reviewer` in the table. Try it:
 
 ```bash
-jarvis ask --agent orchestrator "Use the my-reviewer skill to review this function: def login(user, pwd): return db.query(f'SELECT * FROM users WHERE name={user} AND pass={pwd}')" \
+viki ask --agent orchestrator "Use the my-reviewer skill to review this function: def login(user, pwd): return db.query(f'SELECT * FROM users WHERE name={user} AND pass={pwd}')" \
   --engine ollama --model qwen3.5:9b
 ```
 
@@ -136,18 +136,18 @@ For the learning loop to work, we need traces. Run several queries that use skil
 
 ```bash
 # Tracing is disabled in the generated config until you opt in
-jarvis config set traces.enabled true
+viki config set traces.enabled true
 
 # Generate a few traces
-jarvis ask --agent orchestrator "Use llm-wiki to describe a model entry"
-jarvis ask --agent orchestrator "Use my-reviewer to review: def add(a,b): return a+b"
-jarvis ask --agent orchestrator "Use llm-wiki to describe an evaluation entry"
-jarvis ask --agent orchestrator "Use my-reviewer to review: lambda x: x**2"
-jarvis ask --agent orchestrator "Use llm-wiki to describe a dataset entry"
-jarvis ask --agent orchestrator "Use my-reviewer to review: def square(x): return x*x"
+viki ask --agent orchestrator "Use llm-wiki to describe a model entry"
+viki ask --agent orchestrator "Use my-reviewer to review: def add(a,b): return a+b"
+viki ask --agent orchestrator "Use llm-wiki to describe an evaluation entry"
+viki ask --agent orchestrator "Use my-reviewer to review: lambda x: x**2"
+viki ask --agent orchestrator "Use llm-wiki to describe a dataset entry"
+viki ask --agent orchestrator "Use my-reviewer to review: def square(x): return x*x"
 ```
 
-Each query produces one trace in `~/.openjarvis/traces.db`. An invoked skill's tool-call step includes the `skill`, `skill_source`, and `skill_kind` metadata tags.
+Each query produces one trace in `~/.viki/traces.db`. An invoked skill's tool-call step includes the `skill`, `skill_source`, and `skill_kind` metadata tags.
 
 ## Step 6: Discover Patterns from Traces
 
@@ -155,13 +155,13 @@ Mine the trace store for recurring tool sequences:
 
 ```bash
 # Preview without writing
-jarvis skill discover --dry-run --min-frequency 2 --min-outcome 0
+viki skill discover --dry-run --min-frequency 2 --min-outcome 0
 
 # Write discovered patterns as skill manifests
-jarvis skill discover --min-frequency 2 --min-outcome 0
+viki skill discover --min-frequency 2 --min-outcome 0
 ```
 
-Discovered skills land in `~/.openjarvis/skills/discovered/` and automatically appear in `jarvis skill list` on the next session.
+Discovered skills land in `~/.viki/skills/discovered/` and automatically appear in `viki skill list` on the next session.
 
 Discovery requires recurring sequences of at least two tool calls. `--min-outcome 0` includes new traces that have not yet been scored.
 
@@ -171,19 +171,19 @@ Once you have enough traces (at least 3-5 per skill), run the optimizer:
 
 ```bash
 # Preview what would be optimized
-jarvis optimize skills --dry-run --min-traces 3
+viki optimize skills --dry-run --min-traces 3
 
 # Run DSPy optimization
-jarvis optimize skills --policy dspy --min-traces 3
+viki optimize skills --policy dspy --min-traces 3
 ```
 
-This produces overlay files at `~/.openjarvis/learning/skills/<skill-name>/optimized.toml` with improved descriptions and few-shot examples extracted from your best traces.
+This produces overlay files at `~/.viki/learning/skills/<skill-name>/optimized.toml` with improved descriptions and few-shot examples extracted from your best traces.
 
 Inspect what was produced:
 
 ```bash
-jarvis skill show-overlay llm-wiki
-jarvis skill show-overlay my-reviewer
+viki skill show-overlay llm-wiki
+viki skill show-overlay my-reviewer
 ```
 
 The next time you run a query, the agent sees the optimized descriptions and few-shot examples in its system prompt.
@@ -194,14 +194,14 @@ Run a quick benchmark to see if skills + optimization actually help:
 
 ```bash
 # Smoke test: 4 conditions × 1 seed × 5 tasks
-jarvis bench skills --max-samples 5 --seeds 42
+viki bench skills --max-samples 5 --seeds 42
 ```
 
 This runs the PinchBench benchmark in four conditions (no skills, skills on, DSPy-optimized, GEPA-optimized) and produces a markdown report at `docs/superpowers/results/`.
 
 ## Step 9: Configure Auto-Import and Auto-Optimization
 
-For a hands-off experience, add this to `~/.openjarvis/config.toml`:
+For a hands-off experience, add this to `~/.viki/config.toml`:
 
 ```toml
 [skills]
@@ -225,13 +225,13 @@ Now skills are automatically synced from Hermes on session start, and the optimi
 
 | Concept | What you did |
 |---------|-------------|
-| **Installing skills** | `jarvis skill install hermes:arxiv` — imported from public sources |
-| **Using skills** | `jarvis ask --agent orchestrator "Use the llm-wiki skill..."` — a tool-capable agent invokes skills |
+| **Installing skills** | `viki skill install hermes:arxiv` — imported from public sources |
+| **Using skills** | `viki ask --agent orchestrator "Use the llm-wiki skill..."` — a tool-capable agent invokes skills |
 | **Creating skills** | Wrote a `SKILL.md` with YAML frontmatter and markdown instructions |
 | **Generating traces** | Enabled tracing and ran skill-using queries to populate the trace store |
-| **Discovering patterns** | `jarvis skill discover` — mined traces for recurring tool sequences |
-| **Optimizing skills** | `jarvis optimize skills --policy dspy` — improved descriptions + few-shot examples |
-| **Benchmarking** | `jarvis bench skills` — measured the impact across 4 conditions |
+| **Discovering patterns** | `viki skill discover` — mined traces for recurring tool sequences |
+| **Optimizing skills** | `viki optimize skills --policy dspy` — improved descriptions + few-shot examples |
+| **Benchmarking** | `viki bench skills` — measured the impact across 4 conditions |
 | **Auto configuration** | Added `[skills]` and `[learning.skills]` config sections |
 
 ## Next Steps

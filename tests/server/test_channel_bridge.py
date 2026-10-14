@@ -9,16 +9,16 @@ from unittest.mock import MagicMock
 
 import pytest
 
-pytest.importorskip("fastapi", reason="openjarvis[server] not installed")
+pytest.importorskip("fastapi", reason="viki[server] not installed")
 
-from openjarvis.channels._stubs import (
+from viki.channels._stubs import (
     BaseChannel,
     ChannelHandler,
     ChannelStatus,
 )
-from openjarvis.core.events import EventBus
-from openjarvis.server.channel_bridge import ChannelBridge
-from openjarvis.server.session_store import SessionStore
+from viki.core.events import EventBus
+from viki.server.channel_bridge import ChannelBridge
+from viki.server.session_store import SessionStore
 
 
 class FakeChannel(BaseChannel):
@@ -74,7 +74,7 @@ def bus():
 @pytest.fixture
 def mock_system():
     system = MagicMock()
-    system.ask.return_value = {"content": "Hello from Jarvis!"}
+    system.ask.return_value = {"content": "Hello from Viki!"}
     return system
 
 
@@ -153,7 +153,7 @@ class TestChatRouting:
         mock_system.ask.assert_called_once()
         call_kwargs = mock_system.ask.call_args
         assert "2+2" in str(call_kwargs)
-        assert reply == "Hello from Jarvis!"
+        assert reply == "Hello from Viki!"
 
     def test_stores_conversation_history(self, bridge, store, mock_system):
         bridge.handle_incoming("user1", "hello", "fake")

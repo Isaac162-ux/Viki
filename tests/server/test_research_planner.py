@@ -7,9 +7,9 @@ from types import SimpleNamespace
 
 import pytest
 
-from openjarvis.agents.research_loop import DEFAULT_PLANNER_MODEL
-from openjarvis.core.config import JarvisConfig
-from openjarvis.server import research_router
+from viki.agents.research_loop import DEFAULT_PLANNER_MODEL
+from viki.core.config import JarvisConfig
+from viki.server import research_router
 
 
 class _DummyEngine:

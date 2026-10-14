@@ -4,7 +4,7 @@ use pyo3::prelude::*;
 
 #[pyclass(name = "SecretScanner")]
 pub struct PySecretScanner {
-    inner: openjarvis_security::SecretScanner,
+    inner: viki_security::SecretScanner,
 }
 
 #[pymethods]
@@ -12,7 +12,7 @@ impl PySecretScanner {
     #[new]
     fn new() -> Self {
         Self {
-            inner: openjarvis_security::SecretScanner::new(),
+            inner: viki_security::SecretScanner::new(),
         }
     }
 
@@ -28,7 +28,7 @@ impl PySecretScanner {
 
 #[pyclass(name = "PIIScanner")]
 pub struct PyPIIScanner {
-    inner: openjarvis_security::PIIScanner,
+    inner: viki_security::PIIScanner,
 }
 
 #[pymethods]
@@ -36,7 +36,7 @@ impl PyPIIScanner {
     #[new]
     fn new() -> Self {
         Self {
-            inner: openjarvis_security::PIIScanner::new(),
+            inner: viki_security::PIIScanner::new(),
         }
     }
 
@@ -52,7 +52,7 @@ impl PyPIIScanner {
 
 #[pyclass(name = "GuardrailsEngine")]
 pub struct PyGuardrailsEngine {
-    inner: openjarvis_security::GuardrailsEngine<openjarvis_engine::Engine>,
+    inner: viki_security::GuardrailsEngine<viki_engine::Engine>,
 }
 
 #[pymethods]
@@ -66,16 +66,16 @@ impl PyGuardrailsEngine {
         scan_input: bool,
         scan_output: bool,
     ) -> PyResult<Self> {
-        let config = openjarvis_core::JarvisConfig::default();
-        let engine = openjarvis_engine::get_engine_static(&config, Some(engine_key))
+        let config = viki_core::VikiConfig::default();
+        let engine = viki_engine::get_engine_static(&config, Some(engine_key))
             .map_err(|e| PyErr::new::<pyo3::exceptions::PyRuntimeError, _>(e.to_string()))?;
         let redaction_mode = match mode {
-            "redact" => openjarvis_security::RedactionMode::Redact,
-            "block" => openjarvis_security::RedactionMode::Block,
-            _ => openjarvis_security::RedactionMode::Warn,
+            "redact" => viki_security::RedactionMode::Redact,
+            "block" => viki_security::RedactionMode::Block,
+            _ => viki_security::RedactionMode::Warn,
         };
         Ok(Self {
-            inner: openjarvis_security::GuardrailsEngine::new(
+            inner: viki_security::GuardrailsEngine::new(
                 engine,
                 redaction_mode,
                 scan_input,
@@ -86,14 +86,14 @@ impl PyGuardrailsEngine {
     }
 
     fn engine_id(&self) -> &str {
-        use openjarvis_engine::InferenceEngine;
+        use viki_engine::InferenceEngine;
         self.inner.engine_id()
     }
 }
 
 #[pyclass(name = "AuditLogger")]
 pub struct PyAuditLogger {
-    inner: parking_lot::Mutex<openjarvis_security::AuditLogger>,
+    inner: parking_lot::Mutex<viki_security::AuditLogger>,
 }
 
 #[pymethods]
@@ -105,7 +105,7 @@ impl PyAuditLogger {
             Some(p) => std::path::PathBuf::from(p),
             None => std::path::PathBuf::from(":memory:"),
         };
-        let inner = openjarvis_security::AuditLogger::new(&db_path)
+        let inner = viki_security::AuditLogger::new(&db_path)
             .map_err(|e| PyErr::new::<pyo3::exceptions::PyRuntimeError, _>(e.to_string()))?;
         Ok(Self {
             inner: parking_lot::Mutex::new(inner),
@@ -130,7 +130,7 @@ impl PyAuditLogger {
 
 #[pyclass(name = "CapabilityPolicy")]
 pub struct PyCapabilityPolicy {
-    inner: openjarvis_security::CapabilityPolicy,
+    inner: viki_security::CapabilityPolicy,
 }
 
 #[pymethods]
@@ -139,7 +139,7 @@ impl PyCapabilityPolicy {
     #[pyo3(signature = (default_deny=true))]
     fn new(default_deny: bool) -> Self {
         Self {
-            inner: openjarvis_security::CapabilityPolicy::new(default_deny),
+            inner: viki_security::CapabilityPolicy::new(default_deny),
         }
     }
 
@@ -162,7 +162,7 @@ impl PyCapabilityPolicy {
 
 #[pyclass(name = "InjectionScanner")]
 pub struct PyInjectionScanner {
-    inner: openjarvis_security::InjectionScanner,
+    inner: viki_security::InjectionScanner,
 }
 
 #[pymethods]
@@ -170,7 +170,7 @@ impl PyInjectionScanner {
     #[new]
     fn new() -> Self {
         Self {
-            inner: openjarvis_security::InjectionScanner::new(),
+            inner: viki_security::InjectionScanner::new(),
         }
     }
 
@@ -183,7 +183,7 @@ impl PyInjectionScanner {
 
 #[pyclass(name = "RateLimiter")]
 pub struct PyRateLimiter {
-    inner: openjarvis_security::RateLimiter,
+    inner: viki_security::RateLimiter,
 }
 
 #[pymethods]
@@ -192,8 +192,8 @@ impl PyRateLimiter {
     #[pyo3(signature = (requests_per_minute=60, burst_size=10))]
     fn new(requests_per_minute: u32, burst_size: u32) -> Self {
         Self {
-            inner: openjarvis_security::RateLimiter::new(
-                openjarvis_security::RateLimitConfig {
+            inner: viki_security::RateLimiter::new(
+                viki_security::RateLimitConfig {
                     requests_per_minute,
                     burst_size,
                     enabled: true,
@@ -215,7 +215,7 @@ impl PyRateLimiter {
 
 #[pyclass(name = "TaintSet")]
 pub struct PyTaintSet {
-    inner: openjarvis_security::TaintSet,
+    inner: viki_security::TaintSet,
 }
 
 #[pymethods]
@@ -223,30 +223,30 @@ impl PyTaintSet {
     #[new]
     fn new() -> Self {
         Self {
-            inner: openjarvis_security::TaintSet::new(),
+            inner: viki_security::TaintSet::new(),
         }
     }
 
     fn add(&mut self, label: &str) {
         let taint_label = match label {
-            "pii" => openjarvis_security::TaintLabel::Pii,
-            "secret" => openjarvis_security::TaintLabel::Secret,
-            "user_private" => openjarvis_security::TaintLabel::UserPrivate,
-            "external" => openjarvis_security::TaintLabel::External,
-            _ => openjarvis_security::TaintLabel::External,
+            "pii" => viki_security::TaintLabel::Pii,
+            "secret" => viki_security::TaintLabel::Secret,
+            "user_private" => viki_security::TaintLabel::UserPrivate,
+            "external" => viki_security::TaintLabel::External,
+            _ => viki_security::TaintLabel::External,
         };
         // TaintSet is immutable-style; union with a single-label set.
         self.inner = self.inner.union(
-            &openjarvis_security::TaintSet::from_labels(&[taint_label]),
+            &viki_security::TaintSet::from_labels(&[taint_label]),
         );
     }
 
     fn has(&self, label: &str) -> bool {
         let taint_label = match label {
-            "pii" => openjarvis_security::TaintLabel::Pii,
-            "secret" => openjarvis_security::TaintLabel::Secret,
-            "user_private" => openjarvis_security::TaintLabel::UserPrivate,
-            "external" => openjarvis_security::TaintLabel::External,
+            "pii" => viki_security::TaintLabel::Pii,
+            "secret" => viki_security::TaintLabel::Secret,
+            "user_private" => viki_security::TaintLabel::UserPrivate,
+            "external" => viki_security::TaintLabel::External,
             _ => return false,
         };
         self.inner.has(taint_label)

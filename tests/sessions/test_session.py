@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import time
 
-from openjarvis.sessions.session import (
+from viki.sessions.session import (
     Session,
     SessionIdentity,
     SessionStore,

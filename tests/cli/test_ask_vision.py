@@ -1,4 +1,4 @@
-"""CLI-level regression tests for ``jarvis ask`` vision input.
+"""CLI-level regression tests for ``viki ask`` vision input.
 
 The unit tests in ``tests/test_vision.py`` cover the ``Message.images`` ->
 ``messages_to_dicts`` serialization contract in isolation. These tests lock
@@ -17,13 +17,13 @@ from typing import Any
 
 from click.testing import CliRunner
 
-from openjarvis.cli import cli
-from openjarvis.core.config import JarvisConfig
-from openjarvis.core.types import Role
+from viki.cli import cli
+from viki.core.config import JarvisConfig
+from viki.core.types import Role
 
 # Import the module (not the Click command attribute) so we can monkeypatch
 # the names it looks up at call time.
-_ask_mod = importlib.import_module("openjarvis.cli.ask")
+_ask_mod = importlib.import_module("viki.cli.ask")
 
 # A minimal but valid 1x1 PNG so ``click.Path(exists=True)`` is satisfied and
 # the bytes are deterministic.
@@ -59,7 +59,7 @@ class _RecordingEngine:
 
 
 def _patch_ask(monkeypatch, tmp_path: Path, *, engine_name: str) -> _RecordingEngine:
-    """Wire ``jarvis ask`` to a recording engine reported under ``engine_name``."""
+    """Wire ``viki ask`` to a recording engine reported under ``engine_name``."""
     cfg = JarvisConfig()
     cfg.telemetry.db_path = str(tmp_path / "telemetry.db")
     # Keep memory context out of the picture so the user message we inspect is

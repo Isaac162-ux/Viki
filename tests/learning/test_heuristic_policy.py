@@ -2,9 +2,9 @@
 
 from __future__ import annotations
 
-from openjarvis.core.registry import RouterPolicyRegistry
-from openjarvis.learning.routing.heuristic_policy import ensure_registered
-from openjarvis.learning.routing.router import HeuristicRouter
+from viki.core.registry import RouterPolicyRegistry
+from viki.learning.routing.heuristic_policy import ensure_registered
+from viki.learning.routing.router import HeuristicRouter
 
 
 class TestHeuristicPolicy:

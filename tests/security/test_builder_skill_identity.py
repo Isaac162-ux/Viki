@@ -4,14 +4,14 @@ from __future__ import annotations
 
 from types import SimpleNamespace
 
-from openjarvis.core.config import JarvisConfig
-from openjarvis.core.types import ToolCall
-from openjarvis.security.capabilities import CapabilityPolicy
-from openjarvis.skills.executor import SkillExecutor
-from openjarvis.skills.tool_adapter import SkillTool
-from openjarvis.skills.types import SkillManifest, SkillStep
-from openjarvis.system import SystemBuilder
-from openjarvis.tools.repl import ReplTool
+from viki.core.config import JarvisConfig
+from viki.core.types import ToolCall
+from viki.security.capabilities import CapabilityPolicy
+from viki.skills.executor import SkillExecutor
+from viki.skills.tool_adapter import SkillTool
+from viki.skills.types import SkillManifest, SkillStep
+from viki.system import SystemBuilder
+from viki.tools.repl import ReplTool
 
 
 class _HealthyEngine:
@@ -68,7 +68,7 @@ def test_builder_nested_skill_cannot_fall_back_to_default_identity(
     repl = ReplTool()
 
     monkeypatch.setattr(
-        "openjarvis.security.setup_security",
+        "viki.security.setup_security",
         lambda config, engine, bus: SimpleNamespace(
             engine=engine,
             capability_policy=policy,
@@ -76,7 +76,7 @@ def test_builder_nested_skill_cannot_fall_back_to_default_identity(
             audit_logger=None,
         ),
     )
-    monkeypatch.setattr("openjarvis.skills.manager.SkillManager", _PipelineSkillManager)
+    monkeypatch.setattr("viki.skills.manager.SkillManager", _PipelineSkillManager)
 
     builder = (
         SystemBuilder(config)

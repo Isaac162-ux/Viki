@@ -1,29 +1,29 @@
 [package]
-name = "openjarvis-python"
+name = "viki-python"
 version = "0.1.0"
 edition = "2021"
 
 [lib]
-name = "openjarvis_rust"
+name = "viki_rust"
 crate-type = ["cdylib"]
 
 [dependencies]
-openjarvis-core = { path = "../openjarvis-core" }
-openjarvis-engine = { path = "../openjarvis-engine" }
-openjarvis-security = { path = "../openjarvis-security" }
-openjarvis-tools = { path = "../openjarvis-tools" }
-openjarvis-agents = { path = "../openjarvis-agents" }
-openjarvis-traces = { path = "../openjarvis-traces" }
-openjarvis-telemetry = { path = "../openjarvis-telemetry" }
-openjarvis-learning = { path = "../openjarvis-learning" }
-openjarvis-mcp = { path = "../openjarvis-mcp" }
-openjarvis-sessions = { path = "../openjarvis-sessions" }
-openjarvis-workflow = { path = "../openjarvis-workflow" }
-openjarvis-skills = { path = "../openjarvis-skills" }
-openjarvis-recipes = { path = "../openjarvis-recipes" }
-openjarvis-templates = { path = "../openjarvis-templates" }
-openjarvis-a2a = { path = "../openjarvis-a2a" }
-openjarvis-scheduler = { path = "../openjarvis-scheduler" }
+viki-core = { path = "../viki-core" }
+viki-engine = { path = "../viki-engine" }
+viki-security = { path = "../viki-security" }
+viki-tools = { path = "../viki-tools" }
+viki-agents = { path = "../viki-agents" }
+viki-traces = { path = "../viki-traces" }
+viki-telemetry = { path = "../viki-telemetry" }
+viki-learning = { path = "../viki-learning" }
+viki-mcp = { path = "../viki-mcp" }
+viki-sessions = { path = "../viki-sessions" }
+viki-workflow = { path = "../viki-workflow" }
+viki-skills = { path = "../viki-skills" }
+viki-recipes = { path = "../viki-recipes" }
+viki-templates = { path = "../viki-templates" }
+viki-a2a = { path = "../viki-a2a" }
+viki-scheduler = { path = "../viki-scheduler" }
 pyo3 = { workspace = true }
 serde = { workspace = true }
 serde_json = { workspace = true }
